@@ -20,6 +20,8 @@ final class WorkoutViewModel {
         self.modelContext = modelContext
         self.workoutService = WorkoutService(modelContext: modelContext)
         self.progressionService = ProgressionService(modelContext: modelContext)
+        // Auto-resume an in-progress workout if the app was killed mid-session.
+        self.activeWorkout = workoutService.fetchUnfinishedWorkout()
     }
 
     // MARK: - Workout Lifecycle
@@ -76,6 +78,13 @@ final class WorkoutViewModel {
 
         try? modelContext.save()
         activeWorkout = nil
+    }
+
+    func cancelWorkout() {
+        guard let workout = activeWorkout else { return }
+        workoutService.deleteWorkout(workout)
+        activeWorkout = nil
+        currentExerciseIndex = 0
     }
 
     var currentExercise: ExerciseRecord? {

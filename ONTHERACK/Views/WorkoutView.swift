@@ -22,6 +22,7 @@ struct WorkoutActiveView: View {
     @State private var viewModel: WorkoutViewModel
     let workout: Workout
     @State private var showingFinishAlert = false
+    @State private var showingCancelAlert = false
     @State private var showingCalculator = false
     @State private var selectedTool: ToolType?
 
@@ -122,6 +123,24 @@ struct WorkoutActiveView: View {
             }
             .background(Color.surfaceDark.ignoresSafeArea())
             .preferredColorScheme(.dark)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(role: .destructive) {
+                        showingCancelAlert = true
+                    } label: {
+                        Text("Cancel")
+                            .foregroundColor(.orangeRed)
+                    }
+                }
+            }
+            .alert("Cancel Workout?", isPresented: $showingCancelAlert) {
+                Button("Keep Training", role: .cancel) {}
+                Button("Discard", role: .destructive) {
+                    viewModel.cancelWorkout()
+                }
+            } message: {
+                Text("This workout will be deleted and your progressions won't be updated.")
+            }
             .alert("Finish Workout?", isPresented: $showingFinishAlert) {
                 Button("Cancel", role: .cancel) {}
                 Button("Finish", role: .destructive) {
@@ -255,8 +274,10 @@ struct ExerciseCardView: View {
                 showingRestTimer = true
             }
         }
-        .sheet(isPresented: $showingRestTimer) {
-            RestTimerView()
+        .sheet(isPresented: $showingRestTimer, onDismiss: {
+            lastCompletedSet = nil
+        }) {
+            RestTimerView(exerciseName: exercise.exerciseName)
                 .presentationDetents([.height(200)])
                 .preferredColorScheme(.dark)
         }
