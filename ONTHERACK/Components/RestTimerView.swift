@@ -2,9 +2,20 @@ import SwiftUI
 import Combine
 
 struct RestTimerView: View {
-    @State private var timeRemaining: Int = 90
+    let exerciseName: String?
+    @State private var timeRemaining: Int
     @State private var isRunning = false
     @State private var cancellable: AnyCancellable?
+
+    init(exerciseName: String? = nil) {
+        self.exerciseName = exerciseName
+        let initial = (exerciseName == "Deadlift") ? 180 : 90
+        _timeRemaining = State(initialValue: initial)
+    }
+
+    private var defaultDuration: Int {
+        (exerciseName == "Deadlift") ? 180 : 90
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -54,7 +65,7 @@ struct RestTimerView: View {
     }
 
     private func start() {
-        timeRemaining = 90
+        timeRemaining = defaultDuration
         isRunning = true
         cancellable = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()

@@ -51,4 +51,21 @@ final class WorkoutService {
         var descriptor = FetchDescriptor<Workout>(predicate: predicate, sortBy: [SortDescriptor(\.date, order: .reverse)])
         return (try? modelContext.fetch(descriptor)) ?? []
     }
+
+    /// Finds the most recent workout with no recorded duration — i.e. one that
+    /// was started but never explicitly finished. Used to resume after a kill.
+    func fetchUnfinishedWorkout() -> Workout? {
+        let predicate = #Predicate<Workout> { $0.duration == nil }
+        var descriptor = FetchDescriptor<Workout>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        descriptor.fetchLimit = 1
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    func deleteWorkout(_ workout: Workout) {
+        modelContext.delete(workout)
+        try? modelContext.save()
+    }
 }
