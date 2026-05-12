@@ -56,7 +56,7 @@ struct HomeView: View {
                                     .foregroundColor(.secondary)
                             }
 
-                            Text(last.type.rawValue)
+                            Text(last.displayName)
                                 .font(.title3)
                                 .fontWeight(.medium)
 
@@ -183,56 +183,76 @@ extension WorkoutService {
 struct WorkoutTypeSelectView: View {
     @State private var viewModel: WorkoutViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var templates: [WorkoutTemplate] = []
 
     init(viewModel: WorkoutViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text("Select Workout")
-                .font(.title2)
-                .fontWeight(.bold)
+        ScrollView {
+            VStack(spacing: 16) {
+                Text("Select Workout")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .padding(.top, 8)
 
-            ForEach(WorkoutType.allCases) { type in
-                Button {
-                    viewModel.startWorkout(type: type)
-                    dismiss()
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(type.rawValue)
-                                .font(.headline)
-                            ForEach(type.exercises, id: \.self) { ex in
-                                Text("• \(ex)")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                if templates.isEmpty {
+                    ContentUnavailableView(
+                        "No Workout Plans",
+                        systemImage: "list.bullet.rectangle",
+                        description: Text("Tap “Edit Workouts” to create your first plan.")
+                    )
+                    .padding(.top, 40)
+                } else {
+                    ForEach(templates) { template in
+                        Button {
+                            viewModel.startWorkout(from: template)
+                            dismiss()
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(template.name)
+                                        .font(.headline)
+                                    ForEach(template.exercises.sorted(by: { $0.sortOrder < $1.sortOrder })) { ex in
+                                        Text("• \(ex.exerciseName)")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.orangeRed)
                             }
+                            .padding()
+                            .background(Color.cardDark)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.orangeRed)
+                        .buttonStyle(.plain)
                     }
-                    .padding()
-                    .background(Color.cardDark)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .buttonStyle(.plain)
-            }
 
-            if let last = viewModel.lastWorkout() {
-                Button("Repeat \(last.type.rawValue)") {
-                    viewModel.startWorkout(type: last.type)
-                    dismiss()
+                NavigationLink {
+                    PlanListView(viewModel: viewModel) {
+                        // Refresh after returning so renames/adds show.
+                        templates = viewModel.workoutService.fetchTemplates()
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "pencil")
+                        Text("Edit Workouts")
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.orangeRed)
+                    .padding(.top, 8)
                 }
-                .font(.subheadline)
-                .foregroundColor(.orangeRed)
-            }
 
-            Spacer()
+                Spacer()
+            }
+            .padding()
         }
-        .padding()
         .background(Color.surfaceDark.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        .onAppear { templates = viewModel.workoutService.fetchTemplates() }
     }
 }

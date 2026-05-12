@@ -26,21 +26,16 @@ final class WorkoutViewModel {
 
     // MARK: - Workout Lifecycle
 
-    func startWorkout(type: WorkoutType) {
-        let workout = workoutService.createWorkout(type: type)
-        // Pre-fill sets based on progression
+    func startWorkout(from template: WorkoutTemplate) {
+        let workout = workoutService.createWorkout(from: template)
+        // Pre-fill sets based on progression + template
         for exercise in workout.exercises {
-            guard let prog = progressionService.fetchProgression(for: exercise.exerciseName) else {
-                // Default sets for unknown exercises
-                let targetSets = exercise.exerciseName == "Deadlift" ? 1 : 5
-                exercise.sets = (0..<targetSets).map { i in
-                    SetRecord(weight: 45, reps: 5, sortOrder: i)
-                }
-                continue
-            }
-            let targetSets = exercise.exerciseName == "Deadlift" ? 1 : 5
+            let templateExercise = template.exercises.first(where: { $0.exerciseName == exercise.exerciseName })
+            let targetSets = templateExercise?.targetSets ?? 5
+            let targetReps = templateExercise?.targetReps ?? 5
+            let weight = progressionService.fetchProgression(for: exercise.exerciseName)?.currentWeight ?? 45
             exercise.sets = (0..<targetSets).map { i in
-                SetRecord(weight: prog.currentWeight, reps: 5, sortOrder: i)
+                SetRecord(weight: weight, reps: targetReps, sortOrder: i)
             }
         }
         activeWorkout = workout
