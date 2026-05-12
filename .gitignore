@@ -1,13 +1,16 @@
-# Xcode
-*.xcodeproj/
-*.xcworkspace/
+# Xcode — keep .xcodeproj itself, ignore user-specific bits
+xcuserdata/
 *.xcuserstate
+*.xcuserdatad/
 DerivedData/
 build/
 
 # SwiftPM
 .build/
 .swiftpm/
+
+# Backups
+*.bak
 
 # macOS
 .DS_Store
