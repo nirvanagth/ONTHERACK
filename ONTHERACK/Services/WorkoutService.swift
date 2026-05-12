@@ -10,13 +10,51 @@ final class WorkoutService {
 
     // MARK: - Workout CRUD
 
-    func createWorkout(type: WorkoutType) -> Workout {
-        let exercises = type.exercises.map { name in
-            ExerciseRecord(exerciseName: name, isPrimary: true, sortOrder: type.exercises.firstIndex(of: name)!)
-        }
-        let workout = Workout(type: type, exercises: exercises)
+    func createWorkout(from template: WorkoutTemplate) -> Workout {
+        let exercises = template.exercises
+            .sorted(by: { $0.sortOrder < $1.sortOrder })
+            .map { tex in
+                ExerciseRecord(
+                    exerciseName: tex.exerciseName,
+                    isPrimary: !tex.isAccessory,
+                    sortOrder: tex.sortOrder
+                )
+            }
+        // typeRaw is kept for backward compat with older records — new code paths
+        // read the canonical label from templateName.
+        let workout = Workout(
+            type: .a,
+            templateName: template.name,
+            exercises: exercises
+        )
         modelContext.insert(workout)
         return workout
+    }
+
+    // MARK: - Templates
+
+    func fetchTemplates() -> [WorkoutTemplate] {
+        let descriptor = FetchDescriptor<WorkoutTemplate>(
+            sortBy: [SortDescriptor(\.sortOrder)]
+        )
+        return (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    func createTemplate(name: String) -> WorkoutTemplate {
+        let nextOrder = (fetchTemplates().map(\.sortOrder).max() ?? -1) + 1
+        let template = WorkoutTemplate(name: name, sortOrder: nextOrder)
+        modelContext.insert(template)
+        try? modelContext.save()
+        return template
+    }
+
+    func deleteTemplate(_ template: WorkoutTemplate) {
+        modelContext.delete(template)
+        try? modelContext.save()
+    }
+
+    func saveTemplateChanges() {
+        try? modelContext.save()
     }
 
     func fetchRecentWorkouts(limit: Int = 20) -> [Workout] {

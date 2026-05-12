@@ -27,6 +27,7 @@ enum WorkoutType: String, Codable, CaseIterable, Identifiable {
 final class Workout {
     var date: Date
     var typeRaw: String
+    var templateName: String?
     var duration: TimeInterval?
     var notes: String
     @Relationship(deleteRule: .cascade) var exercises: [ExerciseRecord]
@@ -36,9 +37,16 @@ final class Workout {
         set { typeRaw = newValue.rawValue }
     }
 
-    init(date: Date = Date(), type: WorkoutType = .a, exercises: [ExerciseRecord] = [], duration: TimeInterval? = nil, notes: String = "") {
+    /// Display name — prefers the snapshotted template name (which can be
+    /// custom), falls back to the legacy A/B label for old records.
+    var displayName: String {
+        templateName ?? type.rawValue
+    }
+
+    init(date: Date = Date(), type: WorkoutType = .a, templateName: String? = nil, exercises: [ExerciseRecord] = [], duration: TimeInterval? = nil, notes: String = "") {
         self.date = date
         self.typeRaw = type.rawValue
+        self.templateName = templateName
         self.exercises = exercises
         self.duration = duration
         self.notes = notes
@@ -149,5 +157,37 @@ final class BodyWeightRecord {
         self.date = date
         self.weight = weight
         self.note = note
+    }
+}
+
+// MARK: - Editable Workout Templates
+
+@Model
+final class WorkoutTemplate {
+    var name: String
+    var sortOrder: Int
+    @Relationship(deleteRule: .cascade) var exercises: [TemplateExercise]
+
+    init(name: String, sortOrder: Int = 0, exercises: [TemplateExercise] = []) {
+        self.name = name
+        self.sortOrder = sortOrder
+        self.exercises = exercises
+    }
+}
+
+@Model
+final class TemplateExercise {
+    var exerciseName: String
+    var targetSets: Int
+    var targetReps: Int
+    var sortOrder: Int
+    var isAccessory: Bool
+
+    init(exerciseName: String, targetSets: Int = 5, targetReps: Int = 5, sortOrder: Int = 0, isAccessory: Bool = false) {
+        self.exerciseName = exerciseName
+        self.targetSets = targetSets
+        self.targetReps = targetReps
+        self.sortOrder = sortOrder
+        self.isAccessory = isAccessory
     }
 }

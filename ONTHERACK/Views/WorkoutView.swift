@@ -12,7 +12,9 @@ struct WorkoutLaunchView: View {
             if let workout = viewModel.activeWorkout {
                 WorkoutActiveView(viewModel: viewModel, workout: workout)
             } else {
-                WorkoutTypeSelectView(viewModel: viewModel)
+                NavigationStack {
+                    WorkoutTypeSelectView(viewModel: viewModel)
+                }
             }
         }
     }
@@ -41,7 +43,7 @@ struct WorkoutActiveView: View {
             VStack(spacing: 0) {
                 // Header
                 VStack(spacing: 4) {
-                    Text(workout.type.rawValue)
+                    Text(workout.displayName)
                         .font(.title2)
                         .fontWeight(.bold)
                     Text(workout.date, style: .date)

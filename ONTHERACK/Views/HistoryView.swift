@@ -68,7 +68,7 @@ struct HistoryView: View {
                                 } label: {
                                     HStack {
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text(workout.type.rawValue)
+                                            Text(workout.displayName)
                                                 .font(.headline)
                                             Text(workout.date, style: .date)
                                                 .font(.caption)
@@ -154,7 +154,7 @@ struct WorkoutDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                Text(workout.type.rawValue)
+                Text(workout.displayName)
                     .font(.title2)
                     .fontWeight(.bold)
 
