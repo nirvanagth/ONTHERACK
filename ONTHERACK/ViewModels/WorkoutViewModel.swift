@@ -38,21 +38,19 @@ final class WorkoutViewModel {
                 SetRecord(weight: weight, reps: targetReps, sortOrder: i)
             }
         }
+        try? modelContext.save()
         activeWorkout = workout
         currentExerciseIndex = 0
     }
 
     func completeSet(_ set: SetRecord, completedReps: Int) {
-        set.completedReps = completedReps
+        set.completedReps = min(max(completedReps, 0), set.reps)
         set.isCompleted = true
         try? modelContext.save()
-        NotificationCenter.default.post(name: .setCompleted, object: set)
     }
 
-    func failSet(_ set: SetRecord) {
-        set.isCompleted = false
-        set.completedReps = 0
-        try? modelContext.save()
+    func failSet(_ set: SetRecord, completedReps: Int) {
+        completeSet(set, completedReps: min(completedReps, max(set.reps - 1, 0)))
     }
 
     func undoSet(_ set: SetRecord) {
@@ -73,6 +71,7 @@ final class WorkoutViewModel {
 
         try? modelContext.save()
         activeWorkout = nil
+        currentExerciseIndex = 0
     }
 
     func cancelWorkout() {
@@ -86,6 +85,29 @@ final class WorkoutViewModel {
         guard let workout = activeWorkout,
               currentExerciseIndex < workout.exercises.count else { return nil }
         return workout.exercises[currentExerciseIndex]
+    }
+
+    func advanceAfterCompletingSet(at exerciseIndex: Int) {
+        guard let workout = activeWorkout, !workout.exercises.isEmpty else {
+            currentExerciseIndex = 0
+            return
+        }
+
+        if let nextIncomplete = workout.exercises.indices.first(where: {
+            $0 > exerciseIndex && !workout.exercises[$0].isComplete
+        }) {
+            currentExerciseIndex = nextIncomplete
+            return
+        }
+
+        if let firstIncomplete = workout.exercises.indices.first(where: {
+            !workout.exercises[$0].isComplete
+        }) {
+            currentExerciseIndex = firstIncomplete
+            return
+        }
+
+        currentExerciseIndex = min(exerciseIndex, workout.exercises.count - 1)
     }
 
     var activeWorkoutProgress: (completed: Int, total: Int) {
