@@ -58,7 +58,11 @@ final class WorkoutService {
     }
 
     func fetchRecentWorkouts(limit: Int = 20) -> [Workout] {
+        let predicate = #Predicate<Workout> { workout in
+            workout.duration != nil
+        }
         var descriptor = FetchDescriptor<Workout>(
+            predicate: predicate,
             sortBy: [SortDescriptor(\.date, order: .reverse)]
         )
         descriptor.fetchLimit = limit
@@ -66,7 +70,11 @@ final class WorkoutService {
     }
 
     func fetchLastWorkout() -> Workout? {
+        let predicate = #Predicate<Workout> { workout in
+            workout.duration != nil
+        }
         var descriptor = FetchDescriptor<Workout>(
+            predicate: predicate,
             sortBy: [SortDescriptor(\.date, order: .reverse)]
         )
         descriptor.fetchLimit = 1
@@ -74,7 +82,11 @@ final class WorkoutService {
     }
 
     func fetchWorkoutsForExercise(_ exerciseName: String, limit: Int = 30) -> [Workout] {
+        let predicate = #Predicate<Workout> { workout in
+            workout.duration != nil
+        }
         var descriptor = FetchDescriptor<Workout>(
+            predicate: predicate,
             sortBy: [SortDescriptor(\.date, order: .reverse)]
         )
         descriptor.fetchLimit = limit
@@ -84,9 +96,9 @@ final class WorkoutService {
 
     func fetchWorkoutsInRange(from: Date, to: Date) -> [Workout] {
         let predicate = #Predicate<Workout> { workout in
-            workout.date >= from && workout.date <= to
+            workout.date >= from && workout.date <= to && workout.duration != nil
         }
-        var descriptor = FetchDescriptor<Workout>(predicate: predicate, sortBy: [SortDescriptor(\.date, order: .reverse)])
+        let descriptor = FetchDescriptor<Workout>(predicate: predicate, sortBy: [SortDescriptor(\.date, order: .reverse)])
         return (try? modelContext.fetch(descriptor)) ?? []
     }
 

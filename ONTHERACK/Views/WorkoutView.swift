@@ -25,8 +25,9 @@ struct WorkoutActiveView: View {
     let workout: Workout
     @State private var showingFinishAlert = false
     @State private var showingCancelAlert = false
-    @State private var showingCalculator = false
     @State private var selectedTool: ToolType?
+    @State private var showingRestTimer = false
+    @State private var restTimerExerciseName: String?
 
     enum ToolType: String, Identifiable {
         case plates, warmup
@@ -68,9 +69,11 @@ struct WorkoutActiveView: View {
                                 isActive: index == viewModel.currentExerciseIndex,
                                 onCompleteSet: { set, reps in
                                     viewModel.completeSet(set, completedReps: reps)
-                                },
-                                onFailSet: { set in
-                                    viewModel.failSet(set)
+                                    viewModel.advanceAfterCompletingSet(at: index)
+                                    if !viewModel.isAllExercisesComplete {
+                                        restTimerExerciseName = exercise.exerciseName
+                                        showingRestTimer = true
+                                    }
                                 },
                                 onUndoSet: { set in
                                     viewModel.undoSet(set)
@@ -161,6 +164,13 @@ struct WorkoutActiveView: View {
                         .preferredColorScheme(.dark)
                 }
             }
+            .sheet(isPresented: $showingRestTimer, onDismiss: {
+                restTimerExerciseName = nil
+            }) {
+                RestTimerView(exerciseName: restTimerExerciseName)
+                    .presentationDetents([.height(200)])
+                    .preferredColorScheme(.dark)
+            }
         }
     }
 }
@@ -169,11 +179,10 @@ struct ExerciseCardView: View {
     let exercise: ExerciseRecord
     let isActive: Bool
     let onCompleteSet: (SetRecord, Int) -> Void
-    let onFailSet: (SetRecord) -> Void
     let onUndoSet: (SetRecord) -> Void
 
-    @State private var showingRestTimer = false
-    @State private var lastCompletedSet: SetRecord?
+    @State private var showingFailureDialog = false
+    @State private var pendingFailureSet: SetRecord?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -245,9 +254,10 @@ struct ExerciseCardView: View {
                                     .foregroundColor(.white)
                                     .clipShape(Capsule())
                             }
-                            .disabled(lastCompletedSet != nil)
-
-                            Button { onFailSet(set) } label: {
+                            Button {
+                                pendingFailureSet = set
+                                showingFailureDialog = true
+                            } label: {
                                 Text("Fail")
                                     .font(.caption)
                                     .padding(.horizontal, 8)
@@ -270,22 +280,25 @@ struct ExerciseCardView: View {
                 .stroke(isActive ? Color.orangeRed.opacity(0.5) : Color.clear, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .onReceive(NotificationCenter.default.publisher(for: .setCompleted)) { notification in
-            if let set = notification.object as? SetRecord {
-                lastCompletedSet = set
-                showingRestTimer = true
+        .confirmationDialog(
+            "Reps completed",
+            isPresented: $showingFailureDialog,
+            titleVisibility: .visible
+        ) {
+            if let set = pendingFailureSet {
+                ForEach(Array((0..<set.reps).reversed()), id: \.self) { reps in
+                    Button("\(reps) reps") {
+                        onCompleteSet(set, reps)
+                        pendingFailureSet = nil
+                    }
+                }
             }
-        }
-        .sheet(isPresented: $showingRestTimer, onDismiss: {
-            lastCompletedSet = nil
-        }) {
-            RestTimerView(exerciseName: exercise.exerciseName)
-                .presentationDetents([.height(200)])
-                .preferredColorScheme(.dark)
+
+            Button("Cancel", role: .cancel) {
+                pendingFailureSet = nil
+            }
+        } message: {
+            Text("Record this set as failed.")
         }
     }
-}
-
-extension Notification.Name {
-    static let setCompleted = Notification.Name("setCompleted")
 }
